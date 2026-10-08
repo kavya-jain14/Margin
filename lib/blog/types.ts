@@ -1,0 +1,22 @@
+export const CATEGORIES = ["Perspectives", "Design", "Technology", "Culture", "Travel"] as const;
+export const COVERS = ["stillness", "shapes", "code", "sunset", "landscape", "play"] as const;
+export type Category = (typeof CATEGORIES)[number];
+export type Cover = (typeof COVERS)[number];
+export type Post = {
+  id: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  category: Category;
+  cover: Cover;
+  author: string;
+  date: string;
+  updatedAt?: string;
+  status: "published" | "draft";
+  owned: boolean;
+  likes: number;
+};
+export type Comment = { id: string; postId: string; name: string; body: string; date: string };
+export type BlogState = { version: 1; posts: Post[]; bookmarks: string[]; liked: string[]; comments: Comment[] };
+export type Route = { page: "explore" | "bookmarks" | "studio" | "write" | "read"; id?: string };
+export type Sort = "newest" | "popular" | "shortest";

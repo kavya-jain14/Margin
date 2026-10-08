@@ -1,0 +1,8 @@
+node_modules/
+dist-static/
+coverage/
+.vercel/
+*.tsbuildinfo
+*.log
+.env*
+.DS_Store
