@@ -46,5 +46,6 @@ export function deletePost(state: BlogState, id: string): BlogState {
 }
 export function upsertOwnedPost(state: BlogState, post: Post): BlogState {
   if (!post.owned || state.posts.some(p => p.id === post.id && !p.owned)) return state;
+  if (!isPost(post)) return state;
   return { ...state, posts: state.posts.some(p => p.id === post.id) ? state.posts.map(p => p.id === post.id ? post : p) : [post, ...state.posts] };
 }

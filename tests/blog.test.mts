@@ -154,3 +154,11 @@ test("Markdown headings and lists do not consume adjacent prose", () => {
     {type: "quote", text: "First\nSecond"}, {type: "quote", text: "Separate"}, {type: "paragraph", text: "<script>alert(1)</script>"}
   ]);
 });
+
+
+test("invalid editor updates cannot corrupt the saved collection", () => {
+  const original = {version: 1 as const, posts: [own()], bookmarks: [], liked: [], comments: []};
+  for (const patch of [{title: "x".repeat(121)}, {body: "x".repeat(50001)}, {author: "x".repeat(61)}, {date: "invalid"}, {likes: -1}]) {
+    assert.equal(upsertOwnedPost(original, {...own(), ...patch}), original);
+  }
+});
