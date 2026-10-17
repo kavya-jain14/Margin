@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {seedPosts} from "../lib/blog/seed.ts";
 import {deletePost, filterPosts, parseState, readingMinutes, storyHref, toggleId, upsertOwnedPost, validatePost, wordCount} from "../lib/blog/model.ts";
-import {cacheDraft, clearAllDrafts, clearDraft, DRAFT_PREFIX, recoverDraft} from "../lib/blog/drafts.ts";
+import {cacheDraft, clearAllDrafts, clearDraft, DRAFT_PREFIX, NEW_DRAFT_KEY, recoverDraft} from "../lib/blog/drafts.ts";
 import {parseMarkdown} from "../lib/blog/markdown.ts";
 import type {BlogState, Post} from "../lib/blog/types.ts";
 
@@ -107,7 +107,7 @@ test("new writing recovers only drafts that were never saved into the studio", (
   cacheDraft(storage, draft, true);
   assert.equal(recoverDraft(storage, undefined, [])?.id, draft.id);
   assert.equal(recoverDraft(storage, undefined, [draft.id]), undefined);
-  assert.equal(storage.getItem(`${DRAFT_PREFIX}new`), null);
+  assert.equal(storage.getItem(NEW_DRAFT_KEY), null);
   assert.ok(storage.getItem(`${DRAFT_PREFIX}${draft.id}`));
 });
 
@@ -118,6 +118,37 @@ test("fresh published edits recover without changing the published collection", 
   cacheDraft(storage, edited, false);
   assert.equal(recoverDraft(storage, published, [published.id])?.title, edited.title);
   assert.equal(published.title, own().title);
+  assert.equal(storage.getItem(NEW_DRAFT_KEY), null);
+});
+
+test("new writing does not overwrite recovery for an imported story named new", () => {
+  const storage = new MemoryStorage();
+  const published = {...own(), id: "new"};
+  const edited = {...published, title: "Unpublished revision"};
+  const unsaved = {...own(), id: "fresh-story", status: "draft" as const};
+  cacheDraft(storage, edited, false);
+  cacheDraft(storage, unsaved, true);
+  assert.equal(recoverDraft(storage, published, [published.id])?.title, edited.title);
+  assert.equal(recoverDraft(storage, undefined, [published.id])?.id, unsaved.id);
+  clearDraft(storage, published.id);
+  assert.equal(recoverDraft(storage, undefined, [published.id])?.id, unsaved.id);
+});
+
+test("opening a new editor preserves legacy edits for a story named new", () => {
+  const storage = new MemoryStorage();
+  const published = {...own(), id: "new"};
+  const edited = {...published, title: "Legacy unpublished revision"};
+  storage.setItem(`${DRAFT_PREFIX}new`, JSON.stringify(edited));
+  assert.equal(recoverDraft(storage, undefined, [published.id]), undefined);
+  assert.equal(recoverDraft(storage, published, [published.id])?.title, edited.title);
+});
+
+test("legacy new-session recovery remains available and clears after saving", () => {
+  const storage = new MemoryStorage();
+  const draft = {...own(), status: "draft" as const};
+  storage.setItem(`${DRAFT_PREFIX}new`, JSON.stringify(draft));
+  assert.equal(recoverDraft(storage, undefined, [])?.id, draft.id);
+  clearDraft(storage, draft.id);
   assert.equal(storage.getItem(`${DRAFT_PREFIX}new`), null);
 });
 
@@ -128,7 +159,7 @@ test("saving or deleting a draft clears its recovery alias but preserves other w
   cacheDraft(storage, first, true);
   cacheDraft(storage, second, false);
   clearDraft(storage, first.id);
-  assert.equal(storage.getItem(`${DRAFT_PREFIX}new`), null);
+  assert.equal(storage.getItem(NEW_DRAFT_KEY), null);
   assert.equal(recoverDraft(storage, undefined, []), undefined);
   assert.equal(recoverDraft(storage, second, [second.id])?.id, second.id);
 });

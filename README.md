@@ -118,7 +118,7 @@ vite.static.config.ts  Build configuration and import alias
 
 ## Challenges faced and solutions
 
-**Draft recovery without changing a live story.** Drafts autosave into the studio. Edits to a published story stay in a separate recovery copy until Update story is selected. A new writing session starts blank when explicitly requested, including when the previous autosave is still pending. Save, delete, and backup restore clear the matching recovery data.
+**Draft recovery without changing a live story.** Drafts autosave into the studio. Edits to a published story stay in a separate recovery copy until Update story is selected. A new writing session starts blank when explicitly requested, including when the previous autosave is still pending. New-session recovery uses a separate storage key so an imported story named `new` cannot lose its edits when another draft is started. Existing recovery copies remain readable. Save, delete, and backup restore clear the matching recovery data.
 
 **Keeping related data consistent.** Deleting a post also removes its comments, bookmarks, and likes. Backup parsing validates update dates and unique identifiers so malformed data cannot crash the studio or overwrite a newer restored post with older cached text.
 
@@ -130,7 +130,7 @@ vite.static.config.ts  Build configuration and import alias
 
 ## Verification
 
-The 16 automated tests cover search, filters and sorting, local popularity votes, publication validation, ownership boundaries, create/edit/delete, related-data cleanup, backup validation, draft recovery and cache cleanup, encoded links, Markdown boundaries, bookmarks/likes, and reading estimates.
+The 20 automated tests cover search, filters and sorting, local popularity votes, publication validation, ownership boundaries, create/edit/delete, related-data cleanup, backup validation, draft recovery and cache cleanup (including legacy recovery and imported story identifiers), encoded links, Markdown boundaries, bookmarks/likes, and reading estimates.
 
 The application has passed TypeScript checking and a production build. Interactive browser visual QA was unavailable during implementation; the walkthrough below also provides a manual evaluation path.
 
