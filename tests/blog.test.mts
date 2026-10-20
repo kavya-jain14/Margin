@@ -101,6 +101,22 @@ test("story links encode imported identifiers so punctuation cannot change routi
   assert.equal(decodeURIComponent(href.split("/")[2]), id);
 });
 
+test("backup identifiers must remain safe to encode when rendering story links", () => {
+  for (const id of ["\ud800", "story-\udfff", "\ud800\ud800"]) {
+    const post = {...own(), id};
+    assert.throws(() => parseState(JSON.stringify({...state(), posts: [post]})), /unsupported format/);
+    const original = state();
+    assert.equal(upsertOwnedPost(original, post), original);
+    const storage = new MemoryStorage();
+    cacheDraft(storage, post, true);
+    assert.equal(recoverDraft(storage, undefined, []), undefined);
+  }
+  for (const id of ["notes/one # café", "कहानी-📖", "\ud800\udc00"]) {
+    const restored = parseState(JSON.stringify({...state(), posts: [{...own(), id}]}));
+    assert.equal(decodeURIComponent(storyHref("read", restored.posts[0].id).split("/")[2]), id);
+  }
+});
+
 test("new writing recovers only drafts that were never saved into the studio", () => {
   const storage = new MemoryStorage();
   const draft = {...own(), status: "draft" as const};

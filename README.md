@@ -100,7 +100,7 @@ Sample-story links work wherever the application is available. For your own writ
 
 The local ownership flag controls the demo's editing flow. It is not server authorization. A shared production blog would need authenticated APIs, server-side permissions, and durable storage.
 
-Backups use a versioned schema. Invalid dates, unsupported records, and duplicate identifiers are rejected. Orphaned activity is removed and duplicate bookmarks or likes are normalized. An unreadable local collection is preserved for recovery before replacement; blocked or full storage produces a visible message.
+Backups use a versioned schema. Invalid dates, unsupported records, duplicate identifiers, and malformed Unicode story identifiers that cannot form links are rejected. Valid Unicode and emoji identifiers remain supported. Orphaned activity is removed and duplicate bookmarks or likes are normalized. An unreadable local collection is preserved for recovery before replacement; blocked or full storage produces a visible message.
 
 ## Project structure
 
@@ -130,7 +130,7 @@ vite.static.config.ts  Build configuration and import alias
 
 ## Verification
 
-The 20 automated tests cover search, filters and sorting, local popularity votes, publication validation, ownership boundaries, create/edit/delete, related-data cleanup, backup validation, draft recovery and cache cleanup (including legacy recovery and imported story identifiers), encoded links, Markdown boundaries, bookmarks/likes, and reading estimates.
+The 21 automated tests cover search, filters and sorting, local popularity votes, publication validation, ownership boundaries, create/edit/delete, related-data cleanup, backup validation, draft recovery and cache cleanup (including legacy recovery and imported story identifiers), encoded links, Markdown boundaries, bookmarks/likes, and reading estimates.
 
 The application has passed TypeScript checking and a production build. Interactive browser visual QA was unavailable during implementation; the walkthrough below also provides a manual evaluation path.
 

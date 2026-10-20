@@ -25,10 +25,15 @@ export function validatePost(post: Pick<Post, "title" | "excerpt" | "body" | "au
   if (!post.author.trim()) errors.author = "Add your name so readers know who wrote this.";
   return errors;
 }
+function isStoryId(value: unknown): value is string {
+  if (typeof value !== "string" || !value.length) return false;
+  // JSON can contain lone surrogates, which throw when links are URL-encoded.
+  try {return encodeURIComponent(value).length > 0;} catch {return false;}
+}
 export function isPost(value: unknown): value is Post {
   if (!value || typeof value !== "object") return false;
   const p = value as Post;
-  return typeof p.id === "string" && p.id.length > 0 && typeof p.title === "string" && p.title.length <= 120 && typeof p.excerpt === "string" && p.excerpt.length <= 240 && typeof p.body === "string" && p.body.length <= 50000 && typeof p.author === "string" && p.author.length <= 60 && typeof p.owned === "boolean" && Number.isSafeInteger(p.likes) && p.likes >= 0 && typeof p.date === "string" && Number.isFinite(Date.parse(p.date)) && (p.updatedAt === undefined || (typeof p.updatedAt === "string" && Number.isFinite(Date.parse(p.updatedAt)))) && CATEGORIES.includes(p.category) && COVERS.includes(p.cover) && ["published", "draft"].includes(p.status);
+  return isStoryId(p.id) && typeof p.title === "string" && p.title.length <= 120 && typeof p.excerpt === "string" && p.excerpt.length <= 240 && typeof p.body === "string" && p.body.length <= 50000 && typeof p.author === "string" && p.author.length <= 60 && typeof p.owned === "boolean" && Number.isSafeInteger(p.likes) && p.likes >= 0 && typeof p.date === "string" && Number.isFinite(Date.parse(p.date)) && (p.updatedAt === undefined || (typeof p.updatedAt === "string" && Number.isFinite(Date.parse(p.updatedAt)))) && CATEGORIES.includes(p.category) && COVERS.includes(p.cover) && ["published", "draft"].includes(p.status);
 }
 export function parseState(raw: string): BlogState {
   const state = JSON.parse(raw) as BlogState;
