@@ -100,7 +100,7 @@ Sample-story links work wherever the application is available. For your own writ
 
 The local ownership flag controls the demo's editing flow. It is not server authorization. A shared production blog would need authenticated APIs, server-side permissions, and durable storage.
 
-Backups use a versioned schema. Invalid dates, unsupported records, duplicate identifiers, and malformed Unicode story identifiers that cannot form links are rejected. Valid Unicode and emoji identifiers remain supported. Orphaned activity is removed and duplicate bookmarks or likes are normalized. An unreadable local collection is preserved for recovery before replacement; blocked or full storage produces a visible message.
+Backups use a versioned schema. Invalid dates, unsupported records, duplicate identifiers, and malformed Unicode story identifiers that cannot form links are rejected. Valid Unicode and emoji identifiers remain supported. Orphaned activity is removed and duplicate bookmarks or likes are normalized. An unreadable local collection is preserved for recovery before replacement; blocked or full storage produces a visible message. Backup restoration clears old editor recovery only after the replacement collection has been stored, so a failed write preserves the previous collection and its unfinished edits for the next visit.
 
 ## Project structure
 
@@ -130,9 +130,9 @@ vite.static.config.ts  Build configuration and import alias
 
 ## Verification
 
-The 21 automated tests cover search, filters and sorting, local popularity votes, publication validation, ownership boundaries, create/edit/delete, related-data cleanup, backup validation, draft recovery and cache cleanup (including legacy recovery and imported story identifiers), encoded links, Markdown boundaries, bookmarks/likes, and reading estimates.
+The 23 automated tests cover search, filters and sorting, local popularity votes, publication validation, ownership boundaries, create/edit/delete, related-data cleanup, backup validation, failed backup writes, draft recovery and cache cleanup (including legacy recovery and imported story identifiers), encoded links, Markdown boundaries, bookmarks/likes, and reading estimates.
 
-The application has passed TypeScript checking and a production build. Interactive browser visual QA was unavailable during implementation; the walkthrough below also provides a manual evaluation path.
+The application has passed TypeScript checking and a production build. A production-build browser check exhausted local storage to verify that a failed backup write preserves the saved collection and unfinished editor recovery across reload. With space available, restoring clears old recovery and persists the imported collection. The walkthrough below also provides a manual evaluation path.
 
 ## Evaluation walkthrough
 

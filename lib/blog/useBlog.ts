@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { seedPosts } from "./seed";
 import { parseState, STORAGE_KEY, THEME_KEY } from "./model";
 import type { BlogState } from "./types";
-import { clearAllDrafts } from "./drafts";
+import { restoreCollectionStorage } from "./storage";
 
 export const initialState: BlogState = { version: 1, posts: seedPosts, bookmarks: [], liked: [], comments: [] };
 
@@ -51,8 +51,7 @@ export function useBlog() {
     preserveUnreadableData.current = false;
     setState(next);
     try {
-      clearAllDrafts(localStorage);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      restoreCollectionStorage(localStorage, next);
       setStorageError("");
     } catch {
       setStorageError("Your browser could not save the restored backup. It is available for this session; export your collection before closing.");

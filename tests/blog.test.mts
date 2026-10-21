@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {seedPosts} from "../lib/blog/seed.ts";
-import {deletePost, filterPosts, parseState, readingMinutes, storyHref, toggleId, upsertOwnedPost, validatePost, wordCount} from "../lib/blog/model.ts";
+import {deletePost, filterPosts, parseState, readingMinutes, STORAGE_KEY, storyHref, toggleId, upsertOwnedPost, validatePost, wordCount} from "../lib/blog/model.ts";
+import {restoreCollectionStorage} from "../lib/blog/storage.ts";
 import {cacheDraft, clearAllDrafts, clearDraft, DRAFT_PREFIX, NEW_DRAFT_KEY, recoverDraft} from "../lib/blog/drafts.ts";
 import {parseMarkdown} from "../lib/blog/markdown.ts";
 import type {BlogState, Post} from "../lib/blog/types.ts";
@@ -71,6 +72,39 @@ class MemoryStorage {
   removeItem(key: string) {this.data.delete(key);}
   key(index: number) {return [...this.data.keys()][index] ?? null;}
 }
+
+test("a failed backup write preserves the previous collection and unfinished edits", () => {
+  class FullStorage extends MemoryStorage {
+    failWrites = false;
+    setItem(key: string, value: string) {
+      if (this.failWrites && key === STORAGE_KEY) throw new Error("Quota exceeded");
+      super.setItem(key, value);
+    }
+  }
+  const storage = new FullStorage();
+  const published = own();
+  storage.setItem(STORAGE_KEY, JSON.stringify({...state(), posts: [published]}));
+  cacheDraft(storage, {...published, title: "Unpublished revision"}, false);
+  cacheDraft(storage, {...own(), id: "unsaved-story"}, true);
+  const before = [...storage.data.entries()];
+  storage.failWrites = true;
+  assert.throws(() => restoreCollectionStorage(storage, state()), /Quota exceeded/);
+  assert.deepEqual([...storage.data.entries()], before);
+  assert.equal(recoverDraft(storage, published, [published.id])?.title, "Unpublished revision");
+});
+
+test("a persisted backup clears editor recovery while retaining unrelated preferences", () => {
+  const storage = new MemoryStorage();
+  storage.setItem(STORAGE_KEY, JSON.stringify(state()));
+  storage.setItem("unrelated-preference", "keep");
+  cacheDraft(storage, own(), true);
+  storage.setItem(`${DRAFT_PREFIX}new`, JSON.stringify(own()));
+  const restored = {...state(), posts: [own()]};
+  restoreCollectionStorage(storage, restored);
+  assert.deepEqual(parseState(storage.getItem(STORAGE_KEY)!), restored);
+  assert.equal(storage.getItem("unrelated-preference"), "keep");
+  assert.equal([...storage.data.keys()].some(key => key.startsWith(DRAFT_PREFIX) || key === NEW_DRAFT_KEY), false);
+});
 
 test("popular sorting includes the reader's vote and resolves ties by date", () => {
   const older = {...own(), id: "older", likes: 2, date: "2026-01-01"};
