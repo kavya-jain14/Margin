@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {seedPosts} from "../lib/blog/seed.ts";
 import {deletePost, filterPosts, parseState, readingMinutes, STORAGE_KEY, storyHref, toggleId, upsertOwnedPost, validatePost, wordCount} from "../lib/blog/model.ts";
-import {restoreCollectionStorage} from "../lib/blog/storage.ts";
+import {restoreCollectionStorage, saveStoryStorage} from "../lib/blog/storage.ts";
 import {cacheDraft, clearAllDrafts, clearDraft, DRAFT_PREFIX, NEW_DRAFT_KEY, recoverDraft} from "../lib/blog/drafts.ts";
 import {parseMarkdown} from "../lib/blog/markdown.ts";
 import type {BlogState, Post} from "../lib/blog/types.ts";
@@ -104,6 +104,40 @@ test("a persisted backup clears editor recovery while retaining unrelated prefer
   assert.deepEqual(parseState(storage.getItem(STORAGE_KEY)!), restored);
   assert.equal(storage.getItem("unrelated-preference"), "keep");
   assert.equal([...storage.data.keys()].some(key => key.startsWith(DRAFT_PREFIX) || key === NEW_DRAFT_KEY), false);
+});
+
+test("a failed explicit story save preserves the published collection and editor recovery", () => {
+  class FailingStorage extends MemoryStorage {
+    blocked = false;
+    setItem(key: string, value: string) {
+      if (this.blocked && key === STORAGE_KEY) throw new Error("Write unavailable");
+      super.setItem(key, value);
+    }
+  }
+  const storage = new FailingStorage();
+  const original = {...state(), posts: [own()]};
+  const edited = {...own(), title: "An unfinished revision"};
+  storage.setItem(STORAGE_KEY, JSON.stringify(original));
+  cacheDraft(storage, edited, false);
+  const before = [...storage.data.entries()];
+  storage.blocked = true;
+  assert.throws(() => saveStoryStorage(storage, {...original, posts: [edited]}, edited.id), /Write unavailable/);
+  assert.deepEqual([...storage.data.entries()], before);
+  assert.equal(recoverDraft(storage, own(), [edited.id])?.title, edited.title);
+});
+
+test("a successful explicit save clears only its own recovery after persisting the story", () => {
+  const storage = new MemoryStorage();
+  const edited = {...own(), title: "A saved revision"};
+  const other = {...own(), id: "another-story"};
+  cacheDraft(storage, edited, true);
+  cacheDraft(storage, other, false);
+  const saved = {...state(), posts: [edited]};
+  saveStoryStorage(storage, saved, edited.id);
+  assert.deepEqual(parseState(storage.getItem(STORAGE_KEY)!), saved);
+  assert.equal(storage.getItem(`${DRAFT_PREFIX}${edited.id}`), null);
+  assert.equal(storage.getItem(NEW_DRAFT_KEY), null);
+  assert.ok(storage.getItem(`${DRAFT_PREFIX}${other.id}`));
 });
 
 test("popular sorting includes the reader's vote and resolves ties by date", () => {

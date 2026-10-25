@@ -6,7 +6,7 @@ import { cacheDraft, clearDraft, recoverDraft, sameWriting } from "@/lib/blog/dr
 import CoverArt from "./CoverArt";
 import Markdown from "./Markdown";
 
-type Props = {post?: Post; existingIds: string[]; recoverNew?: boolean; onSave: (post: Post, exit: boolean) => void; onNotify: (text: string) => void};
+type Props = {post?: Post; existingIds: string[]; recoverNew?: boolean; onSave: (post: Post, exit: boolean) => boolean; onNotify: (text: string) => void};
 const coverNames = {stillness: "Stillness", shapes: "Form", code: "Digital", sunset: "Golden", landscape: "Wander", play: "Play"};
 
 export default function Editor({post, existingIds, recoverNew = true, onSave, onNotify}: Props) {
@@ -107,9 +107,11 @@ export default function Editor({post, existingIds, recoverNew = true, onSave, on
       }
     }
     const next = {...value, title: value.title.trim() || "Untitled story", author: value.author.trim() || "You", excerpt: value.excerpt.trim(), body: value.body.trim(), status, updatedAt: new Date().toISOString(), date: status === "published" && !isPublished ? new Date().toISOString() : value.date};
+    if (!onSave(next, true)) {
+      setSaveLabel("Your browser could not save this story. Keep this editor open or export a backup from My studio.");
+      return;
+    }
     session.current.explicitlySaved = true;
-    try {clearDraft(localStorage, value.id);} catch { /* The collection save reports storage errors. */ }
-    onSave(next, true);
     onNotify(status === "published" ? isPublished ? "Story updated." : "Story published." : "Draft saved to your studio.");
   }
 

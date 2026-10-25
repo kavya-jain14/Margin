@@ -118,7 +118,7 @@ vite.static.config.ts  Build configuration and import alias
 
 ## Challenges faced and solutions
 
-**Draft recovery without changing a live story.** Drafts autosave into the studio. Edits to a published story stay in a separate recovery copy until Update story is selected. A new writing session starts blank when explicitly requested, including when the previous autosave is still pending. New-session recovery uses a separate storage key so an imported story named `new` cannot lose its edits when another draft is started. Existing recovery copies remain readable. Save, delete, and backup restore clear the matching recovery data.
+**Draft recovery without changing a live story.** Drafts autosave into the studio. Edits to a published story stay in a separate recovery copy until Update story succeeds. Explicit Save draft, Publish and Update story actions persist the collection before clearing that story's recovery copy. A failed write keeps the editor open with a warning, preserving unfinished edits for recovery or a retry. A new writing session starts blank when explicitly requested, including when the previous autosave is still pending. New-session recovery uses a separate storage key so an imported story named `new` cannot lose its edits when another draft is started. Existing recovery copies remain readable. Successful saves, delete, and backup restore clear the matching recovery data.
 
 **Keeping related data consistent.** Deleting a post also removes its comments, bookmarks, and likes. Backup parsing validates update dates and unique identifiers so malformed data cannot crash the studio or overwrite a newer restored post with older cached text.
 
@@ -130,9 +130,11 @@ vite.static.config.ts  Build configuration and import alias
 
 ## Verification
 
-The 23 automated tests cover search, filters and sorting, local popularity votes, publication validation, ownership boundaries, create/edit/delete, related-data cleanup, backup validation, failed backup writes, draft recovery and cache cleanup (including legacy recovery and imported story identifiers), encoded links, Markdown boundaries, bookmarks/likes, and reading estimates.
+The 25 automated tests cover search, filters and sorting, local popularity votes, publication validation, ownership boundaries, create/edit/delete, related-data cleanup, backup validation, failed backup and explicit story writes, draft recovery and cache cleanup (including legacy recovery and imported story identifiers), encoded links, Markdown boundaries, bookmarks/likes, and reading estimates.
 
 The application has passed TypeScript checking and a production build. A production-build browser check exhausted local storage to verify that a failed backup write preserves the saved collection and unfinished editor recovery across reload. With space available, restoring clears old recovery and persists the imported collection. The walkthrough below also provides a manual evaluation path.
+
+A separate production-build browser check injects a collection-write failure during Update story: the original implementation removed recovery and left the editor; the fix retains both the editor and recovery, restores the edit after reload, and persists a successful retry before clearing recovery. This is a controlled failure check, distinct from the native storage-quota backup check above.
 
 ## Evaluation walkthrough
 

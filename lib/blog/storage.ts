@@ -1,4 +1,4 @@
-import { clearAllDrafts } from "./drafts.ts";
+import { clearAllDrafts, clearDraft } from "./drafts.ts";
 import { STORAGE_KEY } from "./model.ts";
 import type { BlogState } from "./types.ts";
 
@@ -8,4 +8,10 @@ export function restoreCollectionStorage(storage: CollectionStorage, state: Blog
   // A quota failure must leave the previous collection's unfinished edits intact.
   storage.setItem(STORAGE_KEY, JSON.stringify(state));
   clearAllDrafts(storage);
+}
+
+export function saveStoryStorage(storage: CollectionStorage, state: BlogState, id: string): void {
+  // Keep the editor's recovery copy until its collection write has succeeded.
+  storage.setItem(STORAGE_KEY, JSON.stringify(state));
+  clearDraft(storage, id);
 }

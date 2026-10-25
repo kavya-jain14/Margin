@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { seedPosts } from "./seed";
-import { parseState, STORAGE_KEY, THEME_KEY } from "./model";
-import type { BlogState } from "./types";
-import { restoreCollectionStorage } from "./storage";
+import { parseState, STORAGE_KEY, THEME_KEY, upsertOwnedPost } from "./model";
+import type { BlogState, Post } from "./types";
+import { restoreCollectionStorage, saveStoryStorage } from "./storage";
 
 export const initialState: BlogState = { version: 1, posts: seedPosts, bookmarks: [], liked: [], comments: [] };
 
@@ -57,5 +57,19 @@ export function useBlog() {
       setStorageError("Your browser could not save the restored backup. It is available for this session; export your collection before closing.");
     }
   }
-  return { state, setState, dark, setDark, ready, storageError, restoreCollection };
+  function savePost(post: Post): boolean {
+    const next = upsertOwnedPost(state, post);
+    if (next === state) return false;
+    setState(next);
+    try {
+      if (preserveUnreadableData.current) throw new Error("Saved data is unavailable");
+      saveStoryStorage(localStorage, next, post.id);
+      setStorageError("");
+      return true;
+    } catch {
+      setStorageError("Your browser could not save this story. Your changes remain open; export your collection from My studio to keep a copy.");
+      return false;
+    }
+  }
+  return { state, setState, dark, setDark, ready, storageError, restoreCollection, savePost };
 }

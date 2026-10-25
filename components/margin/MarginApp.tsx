@@ -32,7 +32,7 @@ function download(content: string, filename: string, type: string) {
 }
 
 export default function MarginApp() {
-  const {state, setState, dark, setDark, ready, storageError, restoreCollection} = useBlog();
+  const {state, setState, dark, setDark, ready, storageError, restoreCollection, savePost} = useBlog();
   const [route, setRoute] = useState<Route>({page: "explore"});
   const [writeSession, setWriteSession] = useState(0);
   const [query, setQuery] = useState("");
@@ -90,8 +90,11 @@ export default function MarginApp() {
     notify(saved ? "Removed from your reading list." : "Saved to your reading list.");
   }
   function save(post: Post, exit: boolean) {
-    setState(current => upsertOwnedPost(current, post));
-    if (exit) window.location.hash = post.status === "published" ? storyHref("read", post.id) : "/studio";
+    if (exit) {
+      if (!savePost(post)) return false;
+      window.location.hash = post.status === "published" ? storyHref("read", post.id) : "/studio";
+    } else setState(current => upsertOwnedPost(current, post));
+    return true;
   }
   function exportCollection() {
     download(JSON.stringify(state, null, 2), "margin-collection.json", "application/json");
